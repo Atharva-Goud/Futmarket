@@ -19,7 +19,7 @@ const API_BASE = import.meta.env.DEV
   : 'https://api.football-data.org/v4';
 
 // Free API token – replace with your own from football-data.org
-const API_TOKEN = '43f063a5a2b04066b0b69e62c2fa81ea';
+const API_TOKEN = '27a1fb0e75744aa897b8177258bdea08';
 
 // ---------- Simple cache ----------
 const cache = new Map();

@@ -16,6 +16,15 @@ export default defineConfig({
           'Origin': 'https://api.football-data.org',
         },
       },
+      // Proxy NewsAPI calls – free tier blocks browser requests
+      '/api/news': {
+        target: 'https://newsapi.org',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/news/, '/v2'),
+        headers: {
+          'Origin': 'https://newsapi.org',
+        },
+      },
     },
   },
 })

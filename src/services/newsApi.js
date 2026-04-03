@@ -1,7 +1,8 @@
 /**
  * News API Service
  * =================
- * Fetches REAL football news from NewsAPI.org (free tier).
+ * Fetches REAL football news from The Guardian Open Platform (free tier).
+ * Using The Guardian avoids browser CORS issues and doesn't require proxying.
  *
  * DATA ACCURACY RULES:
  *  - No fabricated news headlines or descriptions
@@ -9,8 +10,8 @@
  *  - Only real, externally sourced articles are displayed
  */
 
-const NEWS_API_KEY = '5e06dfc0ac5b4539adca13a03e36d42a'; // Free NewsAPI key
-const NEWS_BASE = 'https://newsapi.org/v2';
+const GUARDIAN_API_KEY = 'test'; // Free developer key
+const GUARDIAN_BASE = 'https://content.guardianapis.com';
 
 // Cache
 let newsCache = null;
@@ -32,20 +33,33 @@ export async function getFootballNews(limit = 9) {
 
   try {
     const res = await fetch(
-      `${NEWS_BASE}/everything?q=football+OR+soccer+OR+premier+league+OR+champions+league&language=en&sortBy=publishedAt&pageSize=${limit}&apiKey=${NEWS_API_KEY}`
+      `${GUARDIAN_BASE}/search?q=football&section=football&show-fields=thumbnail,trailText,headline&page-size=${limit}&api-key=${GUARDIAN_API_KEY}`
     );
 
-    if (!res.ok) throw new Error(`News API error: ${res.status}`);
+    if (!res.ok) throw new Error(`Guardian API error: ${res.status}`);
 
     const data = await res.json();
-    if (data.articles && data.articles.length > 0) {
-      // Filter out removed/empty articles
-      const articles = data.articles.filter(
-        (a) => a.title !== '[Removed]' && a.description && a.title
-      );
-      newsCache = articles;
-      newsCacheTime = Date.now();
-      return articles.slice(0, limit);
+    const results = data.response?.results;
+    
+    if (results && results.length > 0) {
+      // Map The Guardian's structure to our application's expected format (NewsAPI style)
+      const articles = results.map(article => ({
+        title: article.fields?.headline || article.webTitle,
+        description: article.fields?.trailText?.replace(/<[^>]*>?/gm, '') || '', // Strip HTML tags
+        urlToImage: article.fields?.thumbnail || null,
+        url: article.webUrl,
+        publishedAt: article.webPublicationDate,
+        source: { name: 'The Guardian' }
+      }));
+
+      // Filter out articles that lack titles
+      const validArticles = articles.filter(a => a.title);
+
+      if (validArticles.length > 0) {
+        newsCache = validArticles;
+        newsCacheTime = Date.now();
+        return validArticles.slice(0, limit);
+      }
     }
   } catch (err) {
     console.warn('News API unavailable:', err.message);
